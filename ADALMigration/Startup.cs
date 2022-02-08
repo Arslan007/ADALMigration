@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.AzureAD.UI;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.UI;
 
 namespace IRISNDT.Technicians.Web
 {
@@ -41,6 +42,7 @@ namespace IRISNDT.Technicians.Web
             app.UseCookiePolicy();
             app.UseAuthentication();
             app.UseRouting();
+            app.UseAuthorization();
             app.UseMvc();
         }
 
@@ -54,13 +56,17 @@ namespace IRISNDT.Technicians.Web
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            services.AddAuthentication(options =>
+            // Adds Microsoft identity platform support for sign-in Users
+            services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+            .AddMicrosoftIdentityWebApp(options => Configuration.Bind("AzureAd", options));
+
+            services.AddControllersWithViews(options =>
             {
-                options.DefaultScheme = AzureADDefaults.AuthenticationScheme;
-            })
-            .AddAzureAD(options => Configuration.Bind("AzureAd", options))
-            .AddAzureAdBearer(options => Configuration.Bind("AzureAd", options))
-            .AddCookie();
+                var policy = new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
+                options.Filters.Add(new AuthorizeFilter(policy));
+            }).AddMicrosoftIdentityUI();
 
             services.AddHttpContextAccessor();
             services.TryAddSingleton<IActionContextAccessor, ActionContextAccessor>();
@@ -68,15 +74,6 @@ namespace IRISNDT.Technicians.Web
 
             services.AddMvc(options =>
             {
-                var policy = new AuthorizationPolicyBuilder()
-                    .AddAuthenticationSchemes(
-                        JwtBearerDefaults.AuthenticationScheme,
-                        AzureADDefaults.AuthenticationScheme
-                    )
-                    .RequireAuthenticatedUser()
-                    .Build();
-                options.Filters.Add(new AuthorizeFilter(policy));
-                // Allow odata to work with .net 2.2+
                 options.EnableEndpointRouting = false;
             });
 
