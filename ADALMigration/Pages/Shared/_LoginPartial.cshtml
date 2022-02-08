@@ -1,0 +1,28 @@
+@using System.Security.Claims
+@if (User.Identity.IsAuthenticated)
+{
+    var identity = User.Identity as ClaimsIdentity; // Azure AD V2 endpoint specific
+    string preferredUsername = identity.Claims.FirstOrDefault(c => c.Type == "preferred_username" || c.Type.EndsWith("upn"))?.Value;
+    var name = identity.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value;
+    <ul class="nav navbar-nav navbar-right">
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                @name
+            </a>
+            <ul class="dropdown-menu dropdown-menu-right">
+                <li class="nav-item ">
+                    <span class="dropdown-item">Email: @preferredUsername</span>
+                </li>
+                <li class="nav-item ">
+                    <a class="dropdown-item" asp-area="AzureAD" asp-controller="Account" asp-action="SignOut">Sign out</a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+}
+else
+{
+    <ul class="nav navbar-nav navbar-right">
+        <li class="nav-item"><a class="nav-link" asp-area="AzureAD" asp-controller="Account" asp-action="SignIn">Sign in</a></li>
+    </ul>
+}
